@@ -1,0 +1,48 @@
+{
+  "summary": "First full run. Backend: 22/22 pytest pass via the public URL. That covers photos upload/fetch plus device scoping, MediaPipe vision on a real person photo (1 person, 33 landmarks), edit render preview/export (filter, adjust, crop, rotate, flip, Hindi text, stickers, frame), Gemini edit suggest, Nano Banana enhance/remove_bg/blur_bg/replace_bg, carousel (3 sliced 1080x1350) and collage compose, presets CRUD, projects CRUD/duplicate/scoping, ABYA SSE chat in Hindi/Bhojpuri/Hinglish plus a photo-attached chat, the session/messages/delete flow, a TTS->mp3->STT round trip and content generation. Frontend at 390x844: Home, Pose AI (search, chips, favourites, detail, Use in Camera), Camera permission state, ABYA (language sheet, streamed reply via suggestion, typed follow-up, history delete), Projects (rename/duplicate/delete/open), Editor (tools, slider, filters, undo, crop, Hindi text, preset save, AI smart suggestions, Next -> share with Hindi caption generation) and Studio (collage templates, text add plus undo, carousel slides +, export -> 3 slides on share) all work. One crash fixed: the Camera tab threw an uncaught error on web from the expo-sensors Accelerometer. No deprecated Expo packages detected (expo-audio and expo-camera are used).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/edit/suggest", "issue": "No try/except around the LLM call or extract_json. An LLM or JSON parse failure returns a raw 500 instead of a 502 with a message. The other AI endpoints handle this."},
+      {"endpoint": "POST /api/abya/tts, /api/abya/stt, /api/vision/analyze", "issue": "No X-Device-Id is required, so anyone can call these and consume LLM credits. The TTS audio is kept in an in-memory OrderedDict: it is lost on backend restart or reload and is not shared across workers."},
+      {"endpoint": "photos", "issue": "There is no photo delete endpoint, and DELETE /projects leaves orphaned photos (originals, exports, AI results). Storage grows without bound."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Camera tab (web)", "issue": "Uncaught 'this._nativeModule.addListener is not a function' from Accelerometer.addListener. On web, isAvailableAsync returns true but the shim has no addListener, which showed a red error overlay. Fixed by wrapping the call in try/catch.", "testID": "camera-permission", "priority": "HIGH (fixed)"},
+      {"component": "Share screen target grid", "issue": "styles.target has width '23.5%' plus gap 8, which comes to more than 100% at 390px. The grid wraps to 3 per row and leaves about 90px empty on the right; the 'Instagram Story' label is also truncated. Use ~22.5% width or compute the tile size from the container width.", "testID": "share-instagram", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Projects", "issues": ["The meta style uses textTransform 'capitalize', so the date reads '2 Minutes Ago'. Capitalise only the type."]},
+      {"screen": "ABYA header", "issues": ["The 'AI photography assistant' subtitle wraps to 2 cramped lines at 390px next to 4 header buttons. Use numberOfLines={1} or shorten it."]},
+      {"screen": "Share", "issues": ["Once, after Editor Next, the 'Preview & share' title rendered in a serif fallback font (seen 1 of 3 times). The computed font is SpaceGrotesk, so it may be a font-flash on web."]},
+      {"screen": "Home", "issues": ["'Start a shoot' (camera icon) goes to /poses, not /camera. Probably intended ('Pick a pose' first), but the camera icon suggests the camera opens."]}
+    ],
+    "react_native_issues": [
+      {"component": "expo-sensors Accelerometer on web", "issue": "Accelerometer.addListener throws on the web preview. Reference: /app/frontend/app/(tabs)/camera.tsx:100. Guarded with try/catch by the testing agent; consider skipping it when Platform.OS === 'web'."}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_posemate_api.py", "/app/backend/tests/seed_ui_device.py", "/app/backend/tests/cleanup_ui_device.py", "/app/test_reports/pytest/pytest_results.xml", "/app/test_reports/pytest/pytest_ai.xml"],
+  "action_items": [
+    "Fix the share target grid width so 4 tiles fit per row (app/share/[id].tsx:172).",
+    "Wrap /api/edit/suggest in try/except and return 502 with a message, as the other AI endpoints do.",
+    "Optionally require X-Device-Id on the tts/stt/vision endpoints, and move the TTS cache to storage or the DB.",
+    "Add photo cleanup when a project is deleted, or a photo delete endpoint.",
+    "Minor UI polish: Projects date capitalisation, ABYA header subtitle wrapping.",
+    "Review the camera.tsx accelerometer guard (Platform check) that the testing agent added."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py is 1004 lines (over 700): split it into routers (photos, edit, ai, compose, projects, abya, content) plus image utils.",
+    "STT returns {text: ''} silently for audio under 2000 bytes. Fine, but the UI should show a 'didn't catch that' message.",
+    "Bhojpuri/Maithili are mapped to 'hi' for STT, which is acceptable."
+  ],
+  "updated_files": ["/app/frontend/app/(tabs)/camera.tsx", "/app/backend/tests/test_posemate_api.py", "/app/backend/tests/seed_ui_device.py", "/app/backend/tests/cleanup_ui_device.py"],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "~95% (all flows work; 1 crash fixed, 1 layout bug)"},
+  "seed_data_creation": "UI device TEST_ui_device_t1 with 3 TEST_ projects (created by seed_ui_device.py, cleaned up by id with cleanup_ui_device.py). Pytest devices are TEST_dev_*. Their projects, presets and sessions are deleted; their photos remain because no delete endpoint exists.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/test_posemate_api.py -k 'not ai_process' (about 95s) and -k ai_process -n 0 (about 40s). For UI, set localStorage pm.device = JSON.stringify('<device>') then reload, and seed with python tests/seed_ui_device.py <device>. Camera and mic can't be tested headless. Creating files under /app/backend triggers a uvicorn reload, which wipes the TTS cache.",
+  "rca_of_issue": "Camera web crash: expo-sensors web Accelerometer reports available (DeviceMotionEvent exists in Chromium) but the native module shim has no addListener, so the useEffect in camera.tsx threw an uncaught promise error. Mitigation: try/catch plus .catch on isAvailableAsync (applied)."
+}

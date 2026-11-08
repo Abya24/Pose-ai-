@@ -23,6 +23,20 @@ const RATIOS = { "3:4": 4 / 3, "1:1": 1, "9:16": 16 / 9 } as const;
 type Ratio = keyof typeof RATIOS;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Exponential smoothing between consecutive frames so the skeleton glides instead of jumping.
+function smooth(prev: Analysis | null, next: Analysis): Analysis {
+  if (!prev || prev.persons.length !== next.persons.length || prev.width !== next.width) return next;
+  return {
+    ...next,
+    persons: next.persons.map((p, i) => ({
+      landmarks: p.landmarks.map((l, j) => {
+        const o = prev.persons[i].landmarks[j];
+        return [o[0] * 0.35 + l[0] * 0.65, o[1] * 0.35 + l[1] * 0.65, l[2]] as [number, number, number];
+      }),
+    })),
+  };
+}
+
 async function shrink(uri: string, width: number) {
   const ctx = ImageManipulator.manipulate(uri);
   ctx.resize({ width });
@@ -124,15 +138,15 @@ export default function CameraScreen() {
           try {
             const shot = await cam.current.takePictureAsync({ quality: 0.3, skipProcessing: true, shutterSound: false });
             if (!alive || !shot) break;
-            const small = await shrink(shot.uri, 384);
+            const small = await shrink(shot.uri, 288);
             const a = await analyzeFrame(small);
-            if (alive) { setAnalysis(a); setLiveErr(false); }
+            if (alive) { setAnalysis((prev) => smooth(prev, a)); setLiveErr(false); }
           } catch {
             if (alive) setLiveErr(true);
             await sleep(2000);
           }
         }
-        await sleep(500);
+        await sleep(150);
       }
     })();
     return () => { alive = false; };

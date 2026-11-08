@@ -60,9 +60,14 @@ export default function Home() {
             <Title size={26}>PoseMate AI</Title>
             <Text style={styles.powered}>POWERED BY ABYA</Text>
           </View>
-          <PressScale testID="home-ask-abya" onPress={() => router.push("/(tabs)/abya")} style={styles.abyaBtn}>
-            <Icon name="sparkles" size={18} color={colors.onSurface} />
-          </PressScale>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <PressScale testID="home-premium" onPress={() => router.push("/premium")} style={[styles.abyaBtn, { backgroundColor: colors.surfaceTertiary }]}>
+              <Icon name="diamond" size={18} color={colors.warning} />
+            </PressScale>
+            <PressScale testID="home-ask-abya" onPress={() => router.push("/(tabs)/abya")} style={styles.abyaBtn}>
+              <Icon name="sparkles" size={18} color={colors.onSurface} />
+            </PressScale>
+          </View>
         </View>
 
         <View style={styles.hero} testID="home-hero">

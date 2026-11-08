@@ -11,6 +11,7 @@ import { poseById } from "@/src/data/poses";
 import { poseFigures } from "@/src/pose/match";
 import { colors, radius, spacing } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
+import { useSubscription } from "@/src/revenuecat";
 
 export default function PoseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,6 +20,8 @@ export default function PoseDetail() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [fav, setFav] = useState(false);
+  const { isSubscribed } = useSubscription();
+  const locked = !!pose?.premium && !isSubscribed;
 
   useEffect(() => { getFavs().then((f) => setFav(f.includes(String(id)))); }, [id]);
 
@@ -63,7 +66,12 @@ export default function PoseDetail() {
           </View>
 
           <Text style={styles.h}>How to pose</Text>
-          {pose.instructions.map((t, i) => (
+          {locked ? (
+            <View style={styles.tip} testID="pose-locked">
+              <Icon name="lock-closed" size={18} color={colors.warning} />
+              <Text style={styles.tipText}>Part of the {pose.pack} pack in PoseMate Premium. Unlock step-by-step guidance, live pose match and camera use for this pose.</Text>
+            </View>
+          ) : pose.instructions.map((t, i) => (
             <View key={i} style={styles.step}>
               <Text style={styles.stepNum}>{i + 1}</Text>
               <Text style={styles.stepText}>{t}</Text>
@@ -78,7 +86,11 @@ export default function PoseDetail() {
         </View>
       </ScrollView>
       <View style={[styles.cta, { paddingBottom: insets.bottom + spacing.lg }]}>
-        <GradientButton label="Use in Camera" icon="camera" onPress={useInCamera} testID="pose-use-camera" />
+        {locked ? (
+          <GradientButton label="Unlock with Premium" icon="diamond" testID="pose-unlock" onPress={() => router.push({ pathname: "/premium", params: { reason: `Unlock the ${pose.pack} pose pack` } })} />
+        ) : (
+          <GradientButton label="Use in Camera" icon="camera" onPress={useInCamera} testID="pose-use-camera" />
+        )}
       </View>
     </View>
   );

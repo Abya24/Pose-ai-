@@ -805,10 +805,43 @@ async def duplicate_project(project_id: str, x_device_id: Optional[str] = Header
 
 
 @api.delete("/projects/{project_id}")
-async def delete_project(project_id: str, x_device_id: Optional[str] = Header(None)):
+async def delete_project(project_id: str, purge: bool = Query(False), x_device_id: Optional[str] = Header(None)):
     device = need_device(x_device_id)
+    doc = await db.projects.find_one({"id": project_id, "device_id": device}, {"_id": 0})
+    if not doc:
+        return {"ok": True, "photos_deleted": 0}
     await db.projects.delete_one({"id": project_id, "device_id": device})
-    return {"ok": True}
+    deleted = 0
+    if purge:
+        ids = set(doc.get("photos") or []) | set(doc.get("exports") or []) | set((doc.get("edits") or {}).keys())
+        for pg in ((doc.get("canvas") or {}).get("pages") or []):
+            ids |= {e.get("photo_id") for e in pg.get("elements", []) if e.get("photo_id")}
+        # include AI results derived from these photos (e.g. undone background swaps)
+        derived = await db.photos.find({"device_id": device, "source_id": {"$in": list(ids)}}, {"_id": 0, "id": 1}).to_list(1000)
+        ids |= {d["id"] for d in derived}
+        ids.discard(None)
+        # keep anything still used by another project or an ABYA conversation
+        keep = set()
+        async for p in db.projects.find({"device_id": device}, {"_id": 0, "photos": 1, "exports": 1, "edits": 1, "canvas": 1}):
+            keep |= set(p.get("photos") or []) | set(p.get("exports") or []) | set((p.get("edits") or {}).keys())
+            for pg in ((p.get("canvas") or {}).get("pages") or []):
+                keep |= {e.get("photo_id") for e in pg.get("elements", []) if e.get("photo_id")}
+        keep |= {m["photo_id"] async for m in db.abya_messages.find({"photo_id": {"$in": list(ids)}}, {"photo_id": 1})}
+        gone = list(ids - keep)
+        if gone:
+            res = await db.photos.delete_many({"device_id": device, "id": {"$in": gone}})
+            deleted = res.deleted_count
+            for pid in gone:
+                _bytes_cache.pop(pid, None)
+    return {"ok": True, "photos_deleted": deleted}
+
+
+@api.delete("/photos/{photo_id}")
+async def delete_photo(photo_id: str, x_device_id: Optional[str] = Header(None)):
+    device = need_device(x_device_id)
+    res = await db.photos.delete_one({"id": photo_id, "device_id": device})
+    _bytes_cache.pop(photo_id, None)
+    return {"ok": True, "deleted": res.deleted_count}
 
 
 # ---- ABYA assistant

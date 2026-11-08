@@ -11,9 +11,16 @@ import { getDeviceId } from "@/src/api";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { ToastHost } from "@/src/components/ui";
 import { queryClient } from "@/src/query-client";
+import { SubscriptionProvider, initializeRevenueCat } from "@/src/revenuecat";
 import { colors } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
+
+try {
+  initializeRevenueCat();
+} catch (err) {
+  console.warn("RevenueCat unavailable:", err);
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ SpaceGrotesk: require("../assets/fonts/SpaceGrotesk.ttf") });
@@ -29,7 +36,11 @@ export default function RootLayout() {
           <KeyboardProvider>
             <StatusBar style="light" />
             {ready && fontsLoaded ? (
-              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surface }, animation: "slide_from_right" }} />
+              <SubscriptionProvider>
+                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surface }, animation: "slide_from_right" }}>
+                  <Stack.Screen name="premium" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+                </Stack>
+              </SubscriptionProvider>
             ) : (
               <View style={styles.loading}><ActivityIndicator color={colors.brandPrimary} /></View>
             )}

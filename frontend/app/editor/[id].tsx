@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 
 import { Row } from "@/src/components/Row";
+import { FREE_AI_PER_DAY, aiUsedToday, recordAiUse, useSubscription } from "@/src/revenuecat";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -53,6 +54,9 @@ export default function Editor() {
   const [selStk, setSelStk] = useState(-1);
   const [exporting, setExporting] = useState(false);
   const req = useRef(0);
+  const { isSubscribed } = useSubscription();
+  const [aiLeft, setAiLeft] = useState(FREE_AI_PER_DAY);
+  useEffect(() => { aiUsedToday().then((u) => setAiLeft(Math.max(0, FREE_AI_PER_DAY - u))); }, []);
 
   const load = async () => {
     try {
@@ -123,6 +127,10 @@ export default function Editor() {
 
   const runAI = async (mode: string) => {
     if (mode === "replace_bg" && !bgPrompt.trim()) { toast.show("Describe the new background first", "info"); return; }
+    if (mode !== "suggest" && !isSubscribed && (await aiUsedToday()) >= FREE_AI_PER_DAY) {
+      router.push({ pathname: "/premium", params: { reason: `You've used today's ${FREE_AI_PER_DAY} free AI edits` } });
+      return;
+    }
     setAiBusy(mode);
     try {
       if (mode === "suggest") {
@@ -134,6 +142,7 @@ export default function Editor() {
         const ph = await api<Photo>("/ai/process", { body: { photo_id: pid, mode, prompt: bgPrompt } });
         const photos = doc.photos.map((x, i) => (i === sel ? ph.id : x));
         commit({ photos, edits: { ...doc.edits, [ph.id]: doc.edits[pid] || {} } });
+        if (!isSubscribed) { await recordAiUse(); setAiLeft(Math.max(0, FREE_AI_PER_DAY - (await aiUsedToday()))); }
         toast.show("AI result ready — undo to go back to the original", "success");
       }
     } catch (e: any) { toast.show(e.message || "AI processing failed", "error"); }
@@ -275,6 +284,11 @@ export default function Editor() {
             <View style={styles.notice}>
               <Icon name="wifi" size={14} color={colors.info} />
               <Text style={styles.noticeText}>AI tools need internet. Tapping one sends this photo to Google Gemini through PoseMate&apos;s server; results take 10–40s. Noise reduction & sharpening run locally in Adjust.</Text>
+            </View>
+            <View style={styles.notice} testID="ai-quota">
+              <Icon name="diamond-outline" size={14} color={colors.warning} />
+              <Text style={styles.noticeText}>{isSubscribed ? "Premium: unlimited AI edits" : `${aiLeft} of ${FREE_AI_PER_DAY} free AI edits left today`}</Text>
+              {!isSubscribed ? <PressScale testID="ai-go-premium" onPress={() => router.push("/premium")}><Text style={styles.linkText}>Go unlimited</Text></PressScale> : null}
             </View>
             <View style={styles.aiGrid}>
               {[

@@ -22,10 +22,14 @@ export type Pose = {
   cameraAngle: string;
   framing: string;
   tip: string;
+  pack?: string;
+  premium?: boolean;
 };
 
+export const PACKS = ["Bridal", "Haldi", "Sangeet", "Festival"];
+
 export const CATEGORIES = [
-  "Solo", "Couple", "Friends", "Group", "Wedding", "Fashion", "Traditional",
+  "Solo", "Couple", "Friends", "Group", "Family", "Wedding", ...PACKS, "Fashion", "Traditional",
   "Casual", "Portrait", "Outdoor", "Indoor", "Sitting", "Standing",
 ];
 
@@ -207,6 +211,79 @@ export const POSES: Pose[] = [
     cameraAngle: "Eye level, from the room side", framing: "Waist up", tip: "Turn off room lights to avoid mixed colours.",
   },
 ];
+
+const W = (p: Omit<Pose, "premium">): Pose => ({ ...p, premium: true });
+
+// Premium wedding & festival packs (couples and families).
+POSES.push(
+  W({ id: "bridal-mehendi-hands", pack: "Bridal", name: "Mehendi Hands Frame", categories: ["Bridal", "Wedding", "Solo", "Portrait", "Traditional"], level: "Easy",
+    figures: [{ ...STAND, head: -6, lUA: 25, lFA: -165, rUA: -25, rFA: 165 }],
+    instructions: ["Raise both hands to chin height, palms facing the camera.", "Overlap fingertips lightly so both mehendi designs show.", "Look down at your hands, then slowly lift your eyes to the lens.", "Keep elbows soft and close to the body."],
+    cameraAngle: "Slightly above eye level", framing: "Chest up, 4:5", tip: "Side window light makes mehendi colour pop without glare." }),
+  W({ id: "bridal-dupatta-walk", pack: "Bridal", name: "Bridal Dupatta Walk", categories: ["Bridal", "Wedding", "Solo", "Outdoor", "Standing"], level: "Medium",
+    figures: [{ ...STAND, lUA: 60, lFA: 30, rUA: -18, rFA: -10, lTh: 16, lSh: 6, rTh: -14, rSh: -22 }],
+    instructions: ["Hold the end of your dupatta out to one side.", "Walk slowly toward the camera in small steps.", "Let the lehenga flow — don't hold it tight.", "Soft smile, look slightly away."],
+    cameraAngle: "Waist height, straight on", framing: "Full body with the outfit trail", tip: "Ask a helper to lift the dupatta just before each step." }),
+  W({ id: "bridal-mirror-glance", pack: "Bridal", name: "Getting-Ready Glance", categories: ["Bridal", "Wedding", "Indoor", "Sitting", "Portrait"], level: "Easy",
+    figures: [{ ...STAND, head: 14, lUA: 140, lFA: -120, rUA: -15, rFA: 60, lTh: 80, lSh: 0, rTh: -80, rSh: 0 }],
+    instructions: ["Sit beside a mirror or window.", "Adjust an earring or maang tikka with one hand.", "Turn your face three-quarters toward the camera.", "Shoulders relaxed and down."],
+    cameraAngle: "Eye level, close", framing: "Head and shoulders", tip: "Candid getting-ready frames look best with burst mode." }),
+  W({ id: "haldi-laugh-splash", pack: "Haldi", name: "Haldi Laughter", categories: ["Haldi", "Wedding", "Solo", "Sitting", "Traditional"], level: "Easy",
+    figures: [{ ...STAND, head: -10, lUA: 60, lFA: 160, rUA: -40, rFA: -100, lTh: 80, lSh: 5, rTh: -80, rSh: -5 }],
+    instructions: ["Sit on the low stool (patla) facing the camera.", "Raise one hand to shield your face playfully.", "Laugh and lean back slightly as haldi is applied.", "Keep eyes open between laughs."],
+    cameraAngle: "Low, at seated eye level", framing: "Waist up", tip: "Shoot with the sun behind you so yellow tones glow." }),
+  W({ id: "haldi-couple-cheeks", pack: "Haldi", name: "Couple Haldi Cheek Touch", categories: ["Haldi", "Couple", "Wedding", "Standing"], level: "Medium",
+    figures: [
+      { ...STAND, x: -0.14, torso: 172, head: 12, lUA: 70, lFA: 140 },
+      { ...STAND, x: 0.14, torso: 188, head: -12, rUA: -50, rFA: -90 },
+    ],
+    instructions: ["Stand side by side facing each other at an angle.", "One partner gently applies haldi to the other's cheek.", "Both laugh — look at each other, not the lens.", "Keep the free arms relaxed."],
+    cameraAngle: "Eye level, 45° to the couple", framing: "Waist up", tip: "A marigold backdrop makes yellow and orange tones rich." }),
+  W({ id: "haldi-family-circle", pack: "Haldi", name: "Family Haldi Circle", categories: ["Haldi", "Family", "Group", "Wedding"], level: "Medium",
+    figures: [
+      { ...STAND, x: -0.38, s: 0.9, torso: 170, lUA: 70, lFA: 100 },
+      { ...STAND, x: 0, lUA: 25, lFA: -150, rUA: -25, rFA: 150, lTh: 80, lSh: 0, rTh: -80, rSh: 0 },
+      { ...STAND, x: 0.38, s: 0.9, torso: 190, rUA: -70, rFA: -100 },
+    ],
+    instructions: ["Bride or groom sits in the centre.", "Family members stand around and reach in to apply haldi.", "Everyone leans in toward the centre.", "Count to 3 and everyone laughs."],
+    cameraAngle: "Slightly above, from the front", framing: "Wide, include everyone's hands", tip: "Step on a chair for a clean top-down group frame." }),
+  W({ id: "sangeet-twirl-couple", pack: "Sangeet", name: "Sangeet Couple Twirl", categories: ["Sangeet", "Couple", "Wedding", "Indoor", "Standing"], level: "Advanced",
+    figures: [
+      { ...STAND, x: -0.15, lUA: 150, lFA: 170, lTh: 10, rTh: -8 },
+      { ...STAND, x: 0.15, rUA: -150, rFA: -170, lUA: 40, lFA: 20, lTh: 14, rTh: -14 },
+    ],
+    instructions: ["Hold hands raised high between you.", "One partner twirls under the raised arms.", "Keep the other hand out for balance.", "Smile at each other mid-turn."],
+    cameraAngle: "Waist height", framing: "Full body, wide", tip: "Burst mode during the twirl; stage lights add sparkle." }),
+  W({ id: "sangeet-dance-pose", pack: "Sangeet", name: "Bollywood Dance Pose", categories: ["Sangeet", "Solo", "Wedding", "Fashion", "Standing"], level: "Medium",
+    figures: [{ ...STAND, torso: 172, lUA: 140, lFA: 175, rUA: -100, rFA: -80, lTh: 6, rTh: -20, rSh: 15 }],
+    instructions: ["Raise one arm overhead with a soft wrist.", "Other arm out to the side at shoulder height.", "Pop one hip and point the opposite foot.", "Big expressive smile."],
+    cameraAngle: "Low, waist height", framing: "Full body", tip: "Slight low angle makes dance poses look dramatic." }),
+  W({ id: "sangeet-friends-group", pack: "Sangeet", name: "Sangeet Squad", categories: ["Sangeet", "Friends", "Group", "Wedding"], level: "Easy",
+    figures: [
+      { ...STAND, x: -0.38, lUA: 150, lFA: 165 },
+      { ...STAND, x: 0, lUA: 150, lFA: 165, rUA: -150, rFA: -165 },
+      { ...STAND, x: 0.38, rUA: -150, rFA: -165 },
+    ],
+    instructions: ["Line up close together.", "Raise inner arms in the air together.", "Cheer on 3 — mouths open, eyes bright.", "Outer arms around each other's waists."],
+    cameraAngle: "Chest height", framing: "Knees up, wide", tip: "Use flash at night events to freeze the moment." }),
+  W({ id: "festival-diya", pack: "Festival", name: "Diwali Diya Glow", categories: ["Festival", "Solo", "Traditional", "Sitting", "Portrait"], level: "Easy",
+    figures: [{ ...STAND, head: -8, lUA: 20, lFA: -120, rUA: -20, rFA: 120, lTh: 80, lSh: 5, rTh: -80, rSh: -5 }],
+    instructions: ["Sit and hold a diya in both hands at chest height.", "Let the flame light your face from below.", "Look down at the flame, then softly up.", "Turn off nearby room lights."],
+    cameraAngle: "Eye level, close", framing: "Chest up", tip: "Tap to focus on the eyes; keep phone steady in low light." }),
+  W({ id: "festival-holi-colours", pack: "Festival", name: "Holi Colour Throw", categories: ["Festival", "Solo", "Outdoor", "Casual", "Standing"], level: "Medium",
+    figures: [{ ...STAND, lUA: 160, lFA: 170, rUA: -120, rFA: -150, lTh: 12, rTh: -12 }],
+    instructions: ["Hold gulal in raised hands.", "Throw it up and slightly forward.", "Look up into the colour cloud.", "Protect the phone — shoot from a few steps away."],
+    cameraAngle: "Low, slightly from the side", framing: "Full body with sky", tip: "Back-lit sun makes the colour cloud glow." }),
+  W({ id: "festival-family-portrait", pack: "Festival", name: "Festive Family Portrait", categories: ["Festival", "Family", "Group", "Traditional", "Standing"], level: "Easy",
+    figures: [
+      { ...STAND, x: -0.4, s: 1.05 },
+      { ...STAND, x: -0.13, s: 0.75 },
+      { ...STAND, x: 0.13, s: 0.7 },
+      { ...STAND, x: 0.4, s: 1.0, lUA: 20, lFA: -60 },
+    ],
+    instructions: ["Parents at the ends, children in the middle.", "Everyone turns slightly toward the centre.", "Kids stand in front so faces don't overlap.", "Hands resting on shoulders in front."],
+    cameraAngle: "Chest height of the adults", framing: "Full body, wide", tip: "Use the timer with the phone on a stable surface." }),
+);
 
 export function poseById(id?: string | null) {
   return POSES.find((p) => p.id === id);

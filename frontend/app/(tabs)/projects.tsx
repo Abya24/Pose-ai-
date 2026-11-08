@@ -22,6 +22,7 @@ export default function Projects() {
   const [rename, setRename] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [purge, setPurge] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -37,7 +38,7 @@ export default function Projects() {
 
   const act = async (fn: () => Promise<any>, ok: string) => {
     setBusy(true);
-    try { await fn(); toast.show(ok, "success"); close(); await load(); } catch (e: any) { toast.show(e.message, "error"); } finally { setBusy(false); }
+    try { await fn(); if (ok) toast.show(ok, "success"); close(); await load(); } catch (e: any) { toast.show(e.message, "error"); } finally { setBusy(false); }
   };
 
   const newPhoto = async () => {
@@ -104,8 +105,15 @@ export default function Projects() {
           </View>
         ) : confirmDel ? (
           <View style={{ gap: spacing.md }}>
-            <Text style={{ color: colors.onSurfaceSecondary }}>Delete this project? Your exported photos already saved to the gallery stay there.</Text>
-            <OutlineButton danger label="Delete permanently" icon="trash" loading={busy} testID="project-delete-confirm" onPress={() => menu && act(() => api(`/projects/${menu.id}`, { method: "DELETE" }), "Project deleted")} />
+            <Text style={{ color: colors.onSurfaceSecondary }}>Delete this project? Photos you already saved to your phone&apos;s gallery stay there.</Text>
+            <PressScale testID="project-delete-purge-toggle" onPress={() => setPurge(!purge)} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", minHeight: 44 }}>
+              <Icon name={purge ? "checkbox" : "square-outline"} size={20} color={purge ? colors.brand : colors.muted} />
+              <Text style={{ color: colors.onSurface, flex: 1 }}>Also delete its photos permanently (originals, edits, AI results & exports)</Text>
+            </PressScale>
+            <OutlineButton danger label="Delete permanently" icon="trash" loading={busy} testID="project-delete-confirm" onPress={() => menu && act(async () => {
+              const r = await api<{ photos_deleted: number }>(`/projects/${menu.id}?purge=${purge}`, { method: "DELETE" });
+              if (purge) toast.show(`Project and ${r.photos_deleted} photo(s) deleted`, "success");
+            }, purge ? "" : "Project deleted")} />
           </View>
         ) : (
           <View style={{ gap: spacing.sm }}>

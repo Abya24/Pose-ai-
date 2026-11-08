@@ -11,8 +11,10 @@ import { usesNativeTabs } from "@/src/navigation";
 import { poseFigures } from "@/src/pose/match";
 import { colors, radius, spacing } from "@/src/theme";
 import { getFavs } from "@/src/favs";
+import { useSubscription } from "@/src/revenuecat";
 
 export default function Poses() {
+  const { isSubscribed } = useSubscription();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -64,6 +66,12 @@ export default function Poses() {
             <LinearGradient colors={[colors.brandTertiary, colors.surfaceSecondary]} style={StyleSheet.absoluteFill} />
             <SkeletonView persons={poseFigures(item)} width={cw} height={cw * 1.15} strokeWidth={3} />
             {favs.includes(item.id) ? <Icon name="heart" size={16} color={colors.error} style={styles.fav} /> : null}
+            {item.premium ? (
+              <View style={styles.pro} testID={`pose-premium-${item.id}`}>
+                <Icon name={isSubscribed ? "diamond" : "lock-closed"} size={11} color={colors.onWarning} />
+                <Text style={styles.proText}>{item.pack?.toUpperCase()}</Text>
+              </View>
+            ) : null}
             <LinearGradient colors={["transparent", colors.surface]} style={styles.scrim} />
             <View style={styles.cardBody}>
               <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
@@ -85,6 +93,8 @@ const styles = StyleSheet.create({
   input: { flex: 1, color: colors.onSurface, fontSize: 15 },
   card: { borderRadius: radius.md, overflow: "hidden", borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceSecondary },
   fav: { position: "absolute", top: spacing.sm, right: spacing.sm },
+  pro: { position: "absolute", top: spacing.sm, left: spacing.sm, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: colors.warning, borderRadius: radius.pill, paddingHorizontal: 6, paddingVertical: 2 },
+  proText: { color: colors.onWarning, fontSize: 9, fontWeight: "800", letterSpacing: 0.5 },
   scrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "40%" },
   cardBody: { position: "absolute", left: spacing.md, right: spacing.md, bottom: spacing.md },
   cardName: { color: colors.onSurface, fontWeight: "700", fontSize: 14 },
